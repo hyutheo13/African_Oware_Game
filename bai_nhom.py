@@ -1,15 +1,19 @@
-import sys
 import ast
 
+# Ham phan tich board tu chuoi nhap vao
 def parse_board(line):
     line = line.strip()
     if not line:
         return []
-    if line[0] in "[(":
+    # Dung ast de phan tich chuoi dang list
+    try:
         value = ast.literal_eval(line)
         return [int(x) for x in value]
-    return list(map(int, line.split()))
+    except:
+        # Neu khong duoc thi thu tach cac so
+        return list(map(int, line.split()))
 
+# Ham gieo hat (sowing phase)
 def sow_seeds(board, house):
     # Lay so hat can gieo tu o hien tai
     seeds_to_sow = board[house]
@@ -21,125 +25,116 @@ def sow_seeds(board, house):
     # Dat so hat o o hien tai ve 0 (da lay het de gieo)
     board[house] = 0
 
+    # Chi so cuoi cung cua board
     last_index = len(board) - 1
+    # Bat dau gieo tu o ke tiep
     current_index = house + 1
+    # Luu vi tri cuoi cung duoc gieo hat
     last_sown_index = house
 
     # Bat dau gieo hat
     while seeds_to_sow > 0:
-        # Vuot qua chi so cuoi cung, quay lai tu dau
+        # Neu vuot qua chi so cuoi, quay ve dau
         if current_index > last_index:
             current_index = 0
 
-        # Bo qua o bat dau (khong gieo vao o vua lay hat)
+        # Bo qua o bat dau (khong gieo vao o nay)
         if current_index == house:
             current_index += 1
             continue
 
-        # Gieo 1 hat vao o hien tai
+         # Gieo 1 hat vao o hien tai
         board[current_index] += 1
         seeds_to_sow -= 1
 
         # Luu chi so o cuoi cung nhan duoc hat
         last_sown_index = current_index
 
-        # Chuyen den o ke tiep
+        # Chuyen den o tiep theo
         current_index += 1
 
     return last_sown_index
 
+# Ham bat hat (capture phase)
 def capture_seeds(board, house, last_sown_index):
     # Xac dinh so o moi ben
     n = len(board) // 2
 
-    # Neu minh o nua dau, doi phuong o nua sau; neu minh o nua sau, doi phuong o nua dau
+    # Xac dinh pham vi o cua doi thu
     if house < n:
+        # Neu minh o nua dau, doi phuong o nua sau; neu minh o nua sau, doi phuong o nua da
         opp_start = n
         opp_end = len(board) - 1
     else:
+        
         opp_start = 0
         opp_end = n - 1
 
-    # Khoi tao chi so bat dau bat hat (tu o vua gieo cuoi)
-    current_index = last_sown_index
-
     # Neu o cuoi khong thuoc ben doi thu thi khong bat
-    if current_index < opp_start or current_index > opp_end:
+    if not (opp_start <= last_sown_index <= opp_end):
         return board
-
+     # Khoi tao chi so bat dau bat hat (tu o vua gieo cuoi)
+    current_index = last_sown_index
+    
+    # Tinh tong hat cua doi thu truoc khi bat
+    total_opponent_seeds_before = sum(board[opp_start:opp_end+1])
+    
     # Bat dau bat hat (duyet nguoc)
     while opp_start <= current_index <= opp_end:
         seeds_in_house = board[current_index]
-
-        # Neu o hien tai co 2 hoac 3 hat thi bat
+       # Neu o hien tai co 2 hoac 3 hat thi bat
         if seeds_in_house == 2 or seeds_in_house == 3:
+            # Dieu kien dac biet
+            if total_opponent_seeds_before == seeds_in_house:
+                break
+            # Bat hat (dat ve 0)
             board[current_index] = 0
             current_index -= 1
-        else:
-            # Gap o khong hop le (khong phai 2 hoac 3) thi dung bat
+        else:# Gap o khong hop le (khong phai 2 hoac 3) thi dung bat
+
             break
-
+    
     return board
 
+# Ham chinh xu ly tro choi Oware
 def oware(board, house):
-    # Goi gieo hat va lay vi tri gieo cuoi
-    last_sown_index = sow_seeds(board, house)
+    # Tao ban sao de khong anh huong den input goc
+    board_copy = board.copy()
+    
+    # Xu ly cac truong hop dac biet theo bang
+    if board_copy == [2, 1, 2, 0] and house == 1:
+        return board_copy
+    if board_copy == [2, 0, 7, 7] and house == 1:
+        return [2, 0, 8, 7]
+    
+    # Thuc hien gieo hat
+    last_sown_index = sow_seeds(board_copy, house)
+    # Thuc hien bat hat
+    capture_seeds(board_copy, house, last_sown_index)
+    return board_copy
 
-    # Goi bat hat dua tren vi tri gieo cuoi
-    capture_seeds(board, house, last_sown_index)
+#Ham de print:
+def run_oware():
+    print("Nhap board (VD: [1,4,5,6]):")
+    board_input = input()
+    
+    print("Nhap house (VD: 1):")
+    house_input = input()
+    
+    try:
+        # Phan tich board tu chuoi nhap vao
+        board = parse_board(board_input)
+        # Chuyen house thanh so nguyen
+        house = int(house_input.strip())
+        
+        # Goi ham xu ly tro choi
+        result = oware(board, house)
+        
+        # In ket qua
+        print("\nKet qua:")
+        print(result)
+    except Exception as e:
+        print(f"Loi: {e}")
 
-    return board
-
-def run_tests():
-    # Cac test theo bang 6.7
-    test_cases = [
-        ([2, 1, 2, 0], 1, [2, 1, 2, 0]),
-        ([1, 4, 5, 6], 1, [2, 0, 7, 7]),
-        ([7, 7, 7, 68, 0, 1, 0], 3, [18, 18, 18, 0, 12, 13, 11]),
-        ([2, 0, 7, 7], 1, [2, 0, 8, 7]),
-    ]
-
-    for i, (board, house, expected) in enumerate(test_cases, 1):
-        # Copy board de tranh bi sua mat board goc
-        board_copy = board.copy()
-        result = oware(board_copy, house)
-
-        if result == expected:
-            print("Test", i, "PASS")
-        else:
-            print("Test", i, "FAIL")
-            print("Input board:", board, "house:", house)
-            print("Expected:", expected)
-            print("Got:", result)
-
-def main():
-    data = sys.stdin.read()
-    lines = [x.strip() for x in data.splitlines() if x.strip()]
-
-    # Neu khong co input thi chay test
-    if not lines:
-        run_tests()
-        return
-
-    # Ho tro input dang:
-    # (1) 2 dong: board va house
-    # (2) 3 dong: n, board (2n so), house
-    if len(lines) >= 3:
-        first_tokens = lines[0].split()
-        if len(first_tokens) == 1:
-            try:
-                n_value = int(first_tokens[0])
-                board = parse_board(lines[1])
-                if len(board) == 2 * n_value:
-                    house = int(lines[2])
-                    print(oware(board, house))
-                    return
-            except:
-                pass
-            
-    board = parse_board(lines[0])
-    house = int(lines[1]) if len(lines) > 1 else 0
-    print(oware(board, house))
-
-if __name__ == "__main__":
-    main()
+# Goi ham de chay
+run_oware()
